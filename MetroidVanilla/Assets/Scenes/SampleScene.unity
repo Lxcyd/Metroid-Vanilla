@@ -1459,7 +1459,31 @@ MonoBehaviour:
     m_Curve:
     - serializedVersion: 3
       time: 0
-      value: 1.4
+      value: 1.2
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 0.8
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  airAccelCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
       inSlope: 0
       outSlope: 0
       tangentMode: 0
@@ -1478,36 +1502,12 @@ MonoBehaviour:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
-  airAccelCurve:
-    serializedVersion: 2
-    m_Curve:
-    - serializedVersion: 3
-      time: 0
-      value: 1.2
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: 1
-      value: 0.5
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    m_PreInfinity: 2
-    m_PostInfinity: 2
-    m_RotationOrder: 4
   decelCurve:
     serializedVersion: 2
     m_Curve:
     - serializedVersion: 3
       time: 0
-      value: 0.6
+      value: 0.8
       inSlope: 0
       outSlope: 0
       tangentMode: 0
@@ -1516,7 +1516,7 @@ MonoBehaviour:
       outWeight: 0
     - serializedVersion: 3
       time: 1
-      value: 1.5
+      value: 1.2
       inSlope: 0
       outSlope: 0
       tangentMode: 0
@@ -1528,27 +1528,27 @@ MonoBehaviour:
     m_RotationOrder: 4
   jumpHeight: 2
   gravity: 26
-  riseGravityMult: 0.7
-  fallGravityMult: 1.75
+  riseGravityMult: 0.55
+  fallGravityMult: 3
   jumpCutMult: 4
-  apexGravityMult: 0.55
-  apexThreshold: -2
+  apexGravityMult: 0.8
+  apexThreshold: 0.8
   maxFallSpeed: 14
   airJumps: 1
-  airJumpMult: 0.85
+  airJumpMult: 0.9
   headHitterEnabled: 1
-  headBumpBonusSpeed: 3
+  headBumpBonusSpeed: 5
   headBumpMinSpeed: 2
   headBumpMaxSpeed: 22
   headBumpCoyoteTime: 0.12
-  headBumpCapDuration: 0.6
-  jumpBufferTime: 0.15
+  headBumpCapDuration: 0.5
+  jumpBufferTime: 0.08
   coyoteTime: 0.13
   cornerCorrection: 1
-  cornerCorrDist: 0.35
+  cornerCorrDist: 0.25
   cornerCorrRays: 4
   ledgeForgiveness: 1
-  ledgeForgiveRange: 0.18
+  ledgeForgiveRange: 0.15
   inputDebounce: 0.016
   subpixelMovement: 1
   pixelSize: 0.0625
@@ -1566,7 +1566,7 @@ MonoBehaviour:
   dashSpeed: 26
   dashDuration: 0.1
   dashCooldown: 0.55
-  dashExitMomentum: 1.25
+  dashExitMomentum: 1
   groundLayer:
     serializedVersion: 2
     m_Bits: 64
@@ -1576,7 +1576,7 @@ MonoBehaviour:
   wallCheckOffL: {x: -0.13, y: 0}
   wallCheckSize: {x: 0.06, y: 0.28}
   colliderHalfH: 0.33
-  colliderHalfW: 0.11
+  colliderHalfW: -0.11
 --- !u!70 &1522072544
 CapsuleCollider2D:
   m_ObjectHideFlags: 0
@@ -1650,7 +1650,7 @@ Transform:
   m_GameObject: {fileID: 1522072542}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0.652, y: -0.298, z: 0}
+  m_LocalPosition: {x: -40.63, y: -0.1, z: 0}
   m_LocalScale: {x: 2, y: 2, z: 2}
   m_ConstrainProportionsScale: 0
   m_Children:

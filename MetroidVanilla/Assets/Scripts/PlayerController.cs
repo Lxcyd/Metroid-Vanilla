@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+﻿ using UnityEngine;
 using UnityEngine.InputSystem;
 
 [RequireComponent(typeof(Rigidbody2D))]
@@ -12,6 +12,7 @@ public class PlayerController : MonoBehaviour
     public bool wallMechanicsEnabled = false;
     public bool doubleJumpEnabled    = false;
     public bool dashEnabled          = false;
+    public bool longJumpEnabled      = true;
 
     // ══════════════════════════════════════════════════════════════
     //   HORIZONTAL
@@ -55,11 +56,22 @@ public class PlayerController : MonoBehaviour
     public float jumpHeight = 3.5f;
     public float gravity    = 30f;
 
-    [Header("Variable Gravity - Jump Arcs")]
-    [Range(0.1f, 1f)]  public float riseGravityMult = 0.55f;
-    [Range(1f, 5f)]    public float fallGravityMult  = 3.0f;
-    [Range(1f, 12f)]   public float jumpCutMult      = 6.0f;
-    [Range(0f, 1f)]    public float apexGravityMult  = 0.80f;
+    [Header("Variable Gravity Curves")]
+    [Tooltip("Multiplicateur de gravite en montee normale.\nX = vel.y normalisee (0=apex, 1=vitesse de saut max)\nY = multiplicateur")]
+    public AnimationCurve riseGravityCurve = new AnimationCurve(
+        new Keyframe(0f, 0.80f, 0f, 0f),
+        new Keyframe(1f, 0.55f, 0f, 0f));
+
+    [Tooltip("Multiplicateur de gravite en descente.\nX = |vel.y| normalisee (0=debut chute, 1=vitesse chute max)\nY = multiplicateur")]
+    public AnimationCurve fallGravityCurve = new AnimationCurve(
+        new Keyframe(0f, 3.0f, 0f, 0f),
+        new Keyframe(1f, 2.5f, 0f, 0f));
+
+    [Tooltip("Multiplicateur de gravite apres relachement du bouton saut (variable jump height).\nX = vel.y normalisee (0=apex, 1=vitesse de saut max)\nY = multiplicateur")]
+    public AnimationCurve jumpCutCurve = new AnimationCurve(
+        new Keyframe(0f, 4.0f, 0f, 0f),
+        new Keyframe(1f, 6.0f, 0f, 0f));
+
     public float apexThreshold = 0.8f;
     public float maxFallSpeed  = 22f;
 
@@ -74,6 +86,10 @@ public class PlayerController : MonoBehaviour
     //   - Un "ceiling coyote timer" permet de re-sauter immédiatement
     //     après le bump → spammer jump = accumulation fluide et responsive
     //   - La vitesse est protégée contre le drag air via headBumpCapTimer
+    //
+    //   Anti-spam : un cooldown (_ceilingHitCooldown) bloque la
+    //   re-detection pendant headBumpCoyoteTime apres chaque bump.
+    //   Sans ça, spammer jump sous un plafond bas empêche de tomber.
     // ══════════════════════════════════════════════════════════════
 
     [Header("━━━━━━━━━━  HEAD HITTER  ━━━━━━━━━━━━━━━━━━━━━")]
@@ -94,6 +110,9 @@ public class PlayerController : MonoBehaviour
 
     [Tooltip("Secondes pendant lesquelles la vitesse bump resist a la decel air")]
     public float headBumpCapDuration = 0.5f;
+
+    [Tooltip("Distance max entre les pieds du joueur et le sol pour activer le head hitter.\nAu-dela, le plafond stoppe juste la montee sans bonus ni coyote.")]
+    public float headBumpMaxGroundDistance = 0.5f;
 
     // ══════════════════════════════════════════════════════════════
     //   FEEL
@@ -124,18 +143,14 @@ public class PlayerController : MonoBehaviour
     [Range(0f, 0.4f)] public float squashIntensity = 0.10f;
 
     // ══════════════════════════════════════════════════════════════
-    //   LONG JUMP  (plus permissif : fenetre large, saut loin et haut)
+    //   LONG JUMP
     // ══════════════════════════════════════════════════════════════
 
     [Header("━━━━━━━━━━  LONG JUMP  ━━━━━━━━━━━━━━━━━━━━━")]
-    public bool  longJumpEnabled      = true;
-    // ↑ Fenetre agrandie : 0.12 → 0.20 s pour laisser plus de temps au combo
-    [Range(0.05f, 0.35f)] public float longJumpWindow      = 0.20f;
-    // ↑ Plus haut que le saut normal : 0.7 → 1.35
-    [Range(0.5f,  1.5f)]  public float longJumpHeightMult  = 1.35f;
-    // ↑ Plus loin en X : 16 → 21
-    public float longJumpSpeedX       = 21f;
-    [Range(0f, 0.4f)]     public float longJumpLock        = 0.20f;
+    [Range(0.05f, 0.35f)] public float longJumpWindow     = 0.20f;
+    [Range(0.5f,  1.5f)]  public float longJumpHeightMult = 1.35f;
+    public float longJumpSpeedX  = 21f;
+    [Range(0f, 0.4f)]     public float longJumpLock       = 0.20f;
 
     // ══════════════════════════════════════════════════════════════
     //   WALL
@@ -146,9 +161,14 @@ public class PlayerController : MonoBehaviour
     [Range(0f, 0.5f)] public float wallJumpLock  = 0.15f;
     [Range(0f, 0.8f)] public float wallSlideGrav = 0.12f;
 
-    // Wall jump buffer : le jump est mis en file meme avant de toucher le mur
     [Tooltip("Fenetre (s) pendant laquelle un jump presse avant de toucher le mur declenchera un wall jump")]
     [Range(0f, 0.25f)] public float wallJumpBufferTime = 0.12f;
+
+    [Tooltip("Multiplicateur de hauteur du wall jump quand le joueur vient de dasher dans le mur.\n1 = hauteur normale, 2 = double hauteur.")]
+    [Range(1f, 4f)] public float wallDashJumpMult = 2.0f;
+
+    [Tooltip("Fenetre (s) apres un dash-into-wall pendant laquelle le bonus de wall jump est actif.")]
+    [Range(0f, 0.5f)] public float wallDashWindow = 0.25f;
 
     // ══════════════════════════════════════════════════════════════
     //   DASH
@@ -195,6 +215,12 @@ public class PlayerController : MonoBehaviour
     private Rigidbody2D _rb;
     private Vector2 _vel;
 
+    // Vélocité Y calculée par nous au frame précédent, avant que
+    // Unity la modifie via résolution de collision.
+    // Permet de détecter un ceiling hit même quand _vel.y a déjà
+    // été remis à 0 par le moteur physique.
+    private float _prevVelY;
+
     private bool  _grounded, _wasGrounded;
     private bool  _onWall;
     private float _wallDir;
@@ -216,9 +242,13 @@ public class PlayerController : MonoBehaviour
     private float _dashDirX;
     private float _lastDirX = 1f;
 
-    // Head hitter : cap de vitesse (apres penalty)
-    private float _headBumpSpeedCap = 0f;
-    private float _headBumpCapTimer = 0f;
+    // Head hitter
+    private float _headBumpSpeedCap  = 0f;
+    private float _headBumpCapTimer  = 0f;
+    // Cooldown anti-spam : bloque la re-detection plafond pendant
+    // headBumpCoyoteTime apres chaque bump. Empeche de rester colle
+    // en spammant jump sous un plafond bas.
+    private float _ceilingHitCooldown = 0f;
 
     private float _jumpPressTime  = -999f;
     private float _dashPressTime  = -999f;
@@ -227,7 +257,10 @@ public class PlayerController : MonoBehaviour
     // Wall jump buffer : fenetre avant de toucher le mur
     private float _wallJumpBufferTimer = 0f;
 
-    // Ceiling coyote : fenetre apres un bump plafond pour re-sauter immédiatement
+    // Wall dash bonus : fenetre apres un dash-into-wall pour wall jump booste
+    private float _wallDashTimer = 0f;
+
+    // Ceiling coyote : fenetre apres un bump plafond pour re-sauter
     private float _ceilingCoyoteTimer = 0f;
 
     private Vector2 _subpixelAccum;
@@ -284,10 +317,8 @@ public class PlayerController : MonoBehaviour
         _jumpBufferTimer       = jumpBufferTime;
         _jumpPressTime         = Time.realtimeSinceStartup;
 
-        // Wall jump buffer : armer la file meme si le mur n'est pas encore touche
         _wallJumpBufferTimer = wallJumpBufferTime;
 
-        // Long jump : tester si dash a ete presse recemment
         if (longJumpEnabled && (_grounded || _coyoteTimer > 0f)
             && Time.realtimeSinceStartup - _dashPressTime <= longJumpWindow)
             _longJumpQueued = true;
@@ -304,7 +335,7 @@ public class PlayerController : MonoBehaviour
         _dashPressedThisFrame = true;
         _dashDebounce         = inputDebounce;
         _dashPressTime        = Time.realtimeSinceStartup;
-        // Long jump : tester si jump a ete presse recemment
+
         if (longJumpEnabled && (_grounded || _coyoteTimer > 0f)
             && Time.realtimeSinceStartup - _jumpPressTime <= longJumpWindow)
             _longJumpQueued = true;
@@ -373,11 +404,14 @@ public class PlayerController : MonoBehaviour
             if (r)      { _onWall = true; _wallDir =  1f; }
             else if (l) { _onWall = true; _wallDir = -1f; }
 
-            // Reset dash + air jumps au 1er contact avec un mur en l'air
             if (_onWall && !wasOnWall && !_grounded)
             {
                 _dashesLeft   = 1;
                 _airJumpsLeft = airJumps;
+
+                // Dash-into-wall : armer le bonus de wall jump
+                if (_isDashing)
+                    _wallDashTimer = wallDashWindow;
             }
         }
 
@@ -407,19 +441,16 @@ public class PlayerController : MonoBehaviour
                     _baseScale.z);
         }
 
-        // ── HEAD HITTER : ceiling coyote + accumulation additive ──
-        // 1. Box ETROITE : colle au collider, ne deborde pas sur les murs
-        // 2. vel.y = 0 → gravity ramene vers le bas immédiatement
-        // 3. _ceilingCoyoteTimer armé → le prochain jump buffer re-saute
-        //    sans condition grounded → spammer = re-saut immédiat
-        // 4. vel.x += headBumpBonusSpeed a chaque bump (cap = headBumpMaxSpeed)
-        if (headHitterEnabled && _isJumping && _vel.y > 0f)
+        // ── HEAD HITTER ──────────────────────────────────────────
+        //
+        // _ceilingHitCooldown empeche la re-detection pendant la fenetre
+        // coyote qui suit le bump. Sans ce cooldown, spammer jump sous un
+        // plafond bas re-arme le coyote timer a chaque frame et le joueur
+        // ne tombe jamais.
+        if (headHitterEnabled && _prevVelY > 0f && _ceilingHitCooldown <= 0f)
         {
-            // Hitbox collée au sommet du collider : 2.2× large, 0.07 de haut
-            // Assez large pour détecter le plafond, assez étroite pour ne pas
-            // interférer avec les murs latéraux
             bool hitCeiling = Physics2D.OverlapBox(
-                (Vector2)transform.position + new Vector2(0f, colliderHalfH + 0.08f),
+                (Vector2)transform.position + new Vector2(0f, colliderHalfH + 0.05f),
                 new Vector2(colliderHalfW * 1.6f, 0.05f),
                 0f, groundLayer);
 
@@ -430,17 +461,27 @@ public class PlayerController : MonoBehaviour
                 _subpixelAccum.y = 0f;
                 _isJumping       = false;
 
-                // Ceiling coyote
+                // Verifier que le sol est assez proche pour activer le head hitter.
+                // On raycast vers le bas depuis les pieds du joueur.
+                // Si le sol est trop loin (plafond en hauteur, pas un tunnel),
+                // on annule juste la vitesse Y sans bonus ni ceiling coyote.
+                RaycastHit2D groundBelow = Physics2D.Raycast(
+                    (Vector2)transform.position + groundCheckOffset,
+                    Vector2.down,
+                    headBumpMaxGroundDistance,
+                    groundLayer);
+
+                if (groundBelow.collider == null) return;
+
+                // Armer le ceiling coyote et le cooldown anti-spam.
+                // Le cooldown dure autant que la fenetre coyote : le joueur
+                // peut re-sauter une fois dans cette fenetre, mais un
+                // nouveau bump ne peut pas re-armer le timer tant qu'il
+                // n'est pas expire.
                 _ceilingCoyoteTimer = headBumpCoyoteTime;
+                _ceilingHitCooldown = headBumpCoyoteTime;
 
-                // Re-armer le jump buffer : après un bump, _jumpBufferTimer est
-                // déjà à 0 (consommé par le saut précédent). On le recharge
-                // pour que le spam jump fonctionne sans timing parfait —
-                // le prochain FixedUpdate voit bufferActive=true + ceilingCoyote=true
-                // et déclenche DoJump() immédiatement.
-                _jumpBufferTimer = jumpBufferTime;
-
-                // Boost additif : +headBumpBonusSpeed par bump
+                // Boost additif
                 if (Mathf.Abs(_vel.x) >= headBumpMinSpeed)
                 {
                     float dir      = Mathf.Sign(_vel.x);
@@ -463,12 +504,26 @@ public class PlayerController : MonoBehaviour
         _jumpBufferTimer     -= dt;
         _wallJumpTimer       -= dt;
         _wallJumpBufferTimer -= dt;
-        _ceilingCoyoteTimer  -= dt;   // ← ceiling coyote (re-saut apres bump plafond)
+        _ceilingCoyoteTimer  -= dt;
+        _ceilingHitCooldown  -= dt;
+        _wallDashTimer       -= dt;
         _dashCooldownTimer   -= dt;
         if (_headBumpCapTimer > 0f) { _headBumpCapTimer -= dt; if (_headBumpCapTimer <= 0f) _headBumpSpeedCap = 0f; }
     }
 
     // ── 3. GRAVITE ─────────────────────────────────────────────────
+    //
+    //   riseGravityCurve  — montee normale
+    //     X : vel.y / peakVel    (0 = apex, 1 = juste apres le saut)
+    //     Y : multiplicateur
+    //
+    //   jumpCutCurve      — montee apres relachement du bouton
+    //     X : meme normalisation
+    //     Y : multiplicateur (valeur haute = retombee rapide)
+    //
+    //   fallGravityCurve  — descente
+    //     X : |vel.y| / maxFallSpeed    (0 = debut chute, 1 = vitesse max)
+    //     Y : multiplicateur
 
     private void HandleGravity()
     {
@@ -478,13 +533,26 @@ public class PlayerController : MonoBehaviour
             return;
         }
 
-        _atApex = _isJumping && Mathf.Abs(_vel.y) < apexThreshold;
+        float peakVel = Mathf.Sqrt(2f * gravity * jumpHeight);
+        float g;
 
-        float g = gravity;
-        if (_atApex)                       g *= apexGravityMult;
-        else if (_jumpCut && _vel.y > 0f)  g *= jumpCutMult;
-        else if (_vel.y > 0f)              g *= riseGravityMult;
-        else                               g *= fallGravityMult;
+        if (_jumpCut && _vel.y > 0f)
+        {
+            float t = Mathf.Clamp01(_vel.y / Mathf.Max(peakVel, 0.01f));
+            g = gravity * jumpCutCurve.Evaluate(t);
+        }
+        else if (_vel.y > 0f)
+        {
+            float t = Mathf.Clamp01(_vel.y / Mathf.Max(peakVel, 0.01f));
+            g = gravity * riseGravityCurve.Evaluate(t);
+        }
+        else
+        {
+            float t = Mathf.Clamp01(Mathf.Abs(_vel.y) / Mathf.Max(maxFallSpeed, 0.01f));
+            g = gravity * fallGravityCurve.Evaluate(t);
+        }
+
+        _atApex = _isJumping && Mathf.Abs(_vel.y) < apexThreshold;
 
         if (_wallSliding) g *= wallSlideGrav;
 
@@ -501,8 +569,6 @@ public class PlayerController : MonoBehaviour
         bool  hasInput = Mathf.Abs(_inputX) > 0.01f;
         float target   = _inputX * maxSpeed;
 
-        // Si un head bump preserve le momentum, la cible respecte la vitesse acquise
-        // comme minimum (on ne decelere pas en dessous du cap protege)
         if (_headBumpCapTimer > 0f && hasInput && Mathf.Sign(_inputX) == Mathf.Sign(_vel.x))
             target = Mathf.Sign(_inputX) * Mathf.Max(Mathf.Abs(target), _headBumpSpeedCap);
 
@@ -529,13 +595,10 @@ public class PlayerController : MonoBehaviour
 
         _vel.x = Mathf.MoveTowards(_vel.x, target, rate * Time.fixedDeltaTime);
 
-        // Drag exponentiel en l air quand on depasse maxSpeed (sans input)
-        // Donne une deceleration douce et progressive au lieu d un freinage brusque
         if (!hasInput && !_grounded && Mathf.Abs(_vel.x) > maxSpeed)
         {
             float drag = 1f - airOverspeedDrag * Time.fixedDeltaTime;
             _vel.x *= drag;
-            // S assurer de ne pas descendre sous maxSpeed via le drag exponentiel
             if (Mathf.Abs(_vel.x) < maxSpeed)
                 _vel.x = Mathf.Sign(_vel.x) * maxSpeed;
         }
@@ -544,7 +607,7 @@ public class PlayerController : MonoBehaviour
 
         float baseCap = _grounded ? runTopSpeed : runTopSpeed * 2.2f;
         float cap     = _headBumpCapTimer > 0f
-                        ? Mathf.Max(baseCap, _headBumpSpeedCap)   // ← preserv. momentum bump
+                        ? Mathf.Max(baseCap, _headBumpSpeedCap)
                         : baseCap;
         _vel.x = Mathf.Clamp(_vel.x, -cap, cap);
     }
@@ -556,16 +619,13 @@ public class PlayerController : MonoBehaviour
         bool bufferActive = _jumpBufferTimer > 0f;
 
         bool pressingIntoWall = _inputX * _wallDir > 0f;
-        // Wall jump buffer : le jump presse en avance est aussi valide
         bool wallBufferActive = _wallJumpBufferTimer > 0f;
         bool canWall          = (bufferActive || wallBufferActive) && _onWall
                              && wallMechanicsEnabled && pressingIntoWall;
 
-        // canGround : sol, coyote classique, OU ceiling coyote (bump plafond récent)
         bool canGround = bufferActive && (_grounded || _coyoteTimer > 0f || _ceilingCoyoteTimer > 0f);
         bool canAir    = _jumpPressedThisFrame && !_grounded && _airJumpsLeft > 0 && doubleJumpEnabled;
 
-        // Long jump prioritaire sur le saut normal
         if (_longJumpQueued && canGround)
         {
             _longJumpQueued       = false;
@@ -587,7 +647,7 @@ public class PlayerController : MonoBehaviour
         for (int i = 0; i < cornerCorrRays; i++)
         {
             Vector2 ro = orig + new Vector2(step * i, 0f);
-            if (!Physics2D.Raycast(ro, Vector2.up, 0.15f, groundLayer)) continue;
+            if (!Physics2D.Raycast(ro, Vector2.up, 0.08f, groundLayer)) continue;
             for (float offset = pixelSize; offset <= cornerCorrDist; offset += pixelSize)
             {
                 bool cR = !Physics2D.OverlapBox((Vector2)transform.position + new Vector2( offset, 0f) + groundCheckOffset, groundCheckSize, 0f, groundLayer)
@@ -606,11 +666,11 @@ public class PlayerController : MonoBehaviour
     {
         _jumpBufferTimer    = 0f;
         _coyoteTimer        = 0f;
-        _ceilingCoyoteTimer = 0f;   // consommer le ceiling coyote si actif
+        _ceilingCoyoteTimer = 0f;
         _isJumping          = true;
-        _jumpCut         = false;
-        _grounded        = false;
-        _subpixelAccum.y = 0f;
+        _jumpCut            = false;
+        _grounded           = false;
+        _subpixelAccum.y    = 0f;
 
         float v = Mathf.Sqrt(2f * gravity * height);
         TryCornerCorrect(v);
@@ -626,14 +686,17 @@ public class PlayerController : MonoBehaviour
     private void DoWallJump()
     {
         _jumpBufferTimer     = 0f;
-        _wallJumpBufferTimer = 0f;   // consommer le buffer wall jump
+        _wallJumpBufferTimer = 0f;
         _isJumping           = true;
         _jumpCut             = false;
         _wallSliding         = false;
         _grounded            = false;
-        _vel.y               = Mathf.Sqrt(2f * gravity * jumpHeight);
-        _vel.x               = -_wallDir * wallJumpForceX;
-        _wallJumpTimer       = wallJumpLock;
+
+        float heightMult = _wallDashTimer > 0f ? wallDashJumpMult : 1f;
+        _vel.y         = Mathf.Sqrt(2f * gravity * jumpHeight * heightMult);
+        _vel.x         = -_wallDir * wallJumpForceX;
+        _wallJumpTimer = wallJumpLock;
+        _wallDashTimer = 0f;
 
         if (squashStretch)
             _targetScale = new Vector3(
@@ -681,7 +744,7 @@ public class PlayerController : MonoBehaviour
         _dashTimer         = dashDuration;
         _dashCooldownTimer = dashCooldown;
         _jumpCut           = false;
-        _dashDirX = _inputX != 0f ? Mathf.Sign(_inputX) : _lastDirX;
+        _dashDirX          = _inputX != 0f ? Mathf.Sign(_inputX) : _lastDirX;
         _vel               = new Vector2(_dashDirX * dashSpeed, 0f);
     }
 
@@ -698,13 +761,10 @@ public class PlayerController : MonoBehaviour
 
             if (_grounded)
             {
-                // Au sol : sortie standard
                 _vel.x = _dashDirX * maxSpeed * dashExitMomentum;
             }
             else
             {
-                // En l'air : sortie limitee a maxSpeed * dashExitMomentum (pas dashSpeed)
-                // Protection courte contre la decel air
                 float airExitSpeed = maxSpeed * dashExitMomentum;
                 _vel.x            = _dashDirX * airExitSpeed;
                 _headBumpSpeedCap = airExitSpeed;
@@ -720,6 +780,8 @@ public class PlayerController : MonoBehaviour
 
     private void ApplyVelocity()
     {
+        _prevVelY = _vel.y;
+
         if (!subpixelMovement) { _rb.linearVelocity = _vel; return; }
 
         float dt = Time.fixedDeltaTime;
@@ -765,8 +827,9 @@ public class PlayerController : MonoBehaviour
     public void UnlockWall()       => wallMechanicsEnabled = true;
     public void UnlockDoubleJump() => doubleJumpEnabled    = true;
     public void UnlockDash()       => dashEnabled          = true;
-    public void LockAll()          => wallMechanicsEnabled = doubleJumpEnabled = dashEnabled = false;
-    public void UnlockAll()        => wallMechanicsEnabled = doubleJumpEnabled = dashEnabled = true;
+    public void UnlockLongJump()   => longJumpEnabled      = true;
+    public void LockAll()          => wallMechanicsEnabled = doubleJumpEnabled = dashEnabled = longJumpEnabled = false;
+    public void UnlockAll()        => wallMechanicsEnabled = doubleJumpEnabled = dashEnabled = longJumpEnabled = true;
 
     // ── GIZMOS ─────────────────────────────────────────────────────
 
@@ -777,9 +840,9 @@ public class PlayerController : MonoBehaviour
 
         if (headHitterEnabled)
         {
-            Gizmos.color = new Color(1f, 0.9f, 0.1f); // jaune = momentum preserve
+            Gizmos.color = new Color(1f, 0.9f, 0.1f);
             Gizmos.DrawWireCube(
-                transform.position + new Vector3(0f, colliderHalfH + 0.08f, 0f),
+                transform.position + new Vector3(0f, colliderHalfH + 0.05f, 0f),
                 new Vector3(colliderHalfW * 1.6f, 0.05f, 0f));
         }
         if (wallMechanicsEnabled)
@@ -796,7 +859,7 @@ public class PlayerController : MonoBehaviour
             for (int i = 0; i < cornerCorrRays; i++)
             {
                 Vector3 o = start + new Vector3(step * i, 0f, 0f);
-                Gizmos.DrawLine(o, o + Vector3.up * 0.15f);
+                Gizmos.DrawLine(o, o + Vector3.up * 0.08f);
             }
         }
         if (ledgeForgiveness)
