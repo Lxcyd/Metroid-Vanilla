@@ -733,6 +733,7 @@ GameObject:
   - component: {fileID: 1522072545}
   - component: {fileID: 1522072544}
   - component: {fileID: 1522072543}
+  - component: {fileID: 1522072548}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -761,7 +762,7 @@ MonoBehaviour:
   groundDecel: 100
   airAccel: 75
   airDecel: 30
-  turnBoost: 3.5
+  turnBoost: 2.51
   groundAccelCurve:
     serializedVersion: 2
     m_Curve:
@@ -834,14 +835,13 @@ MonoBehaviour:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
-  jumpHeight: 4.2
+  jumpHeight: 2
   gravity: 26
   riseGravityMult: 0.7
   fallGravityMult: 1.75
   jumpCutMult: 4
   apexGravityMult: 0.55
-  apexThreshold: 1.2
-  apexSpeedBonus: 0.35
+  apexThreshold: -2
   maxFallSpeed: 14
   airJumps: 1
   airJumpMult: 0.85
@@ -858,7 +858,7 @@ MonoBehaviour:
   squashStretch: 1
   squashIntensity: 0.2
   wallJumpForceX: 9.5
-  wallJumpLock: 0.22
+  wallJumpLock: 0.15
   wallSlideGrav: 0.5
   dashSpeed: 26
   dashDuration: 0.1
@@ -956,6 +956,23 @@ Transform:
   - {fileID: 176993545}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1522072548
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1522072542}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2ec41a849546225448467c1885caeae0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: '::'
+  showHUD: 1
+  showVelocity: 1
+  showGraph: 1
+  uiScale: 0.8
+  displaySmoothing: 0.12
 --- !u!1 &2131957233
 GameObject:
   m_ObjectHideFlags: 0
