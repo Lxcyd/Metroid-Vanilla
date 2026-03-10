@@ -1446,6 +1446,7 @@ MonoBehaviour:
   wallMechanicsEnabled: 1
   doubleJumpEnabled: 1
   dashEnabled: 1
+  longJumpEnabled: 1
   maxSpeed: 9
   runTopSpeed: 9
   groundAccel: 50
@@ -1528,10 +1529,78 @@ MonoBehaviour:
     m_RotationOrder: 4
   jumpHeight: 2
   gravity: 26
-  riseGravityMult: 0.55
-  fallGravityMult: 3
-  jumpCutMult: 4
-  apexGravityMult: 0.8
+  riseGravityCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0.8
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 0.55
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  fallGravityCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 3
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 2.5
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  jumpCutCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 4
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 6
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
   apexThreshold: 0.8
   maxFallSpeed: 14
   airJumps: 1
@@ -1539,9 +1608,10 @@ MonoBehaviour:
   headHitterEnabled: 1
   headBumpBonusSpeed: 5
   headBumpMinSpeed: 2
-  headBumpMaxSpeed: 22
+  headBumpMaxSpeed: 18
   headBumpCoyoteTime: 0.12
   headBumpCapDuration: 0.5
+  headBumpMaxGroundDistance: 0.2
   jumpBufferTime: 0.08
   coyoteTime: 0.13
   cornerCorrection: 1
@@ -1554,7 +1624,6 @@ MonoBehaviour:
   pixelSize: 0.0625
   squashStretch: 1
   squashIntensity: 0.2
-  longJumpEnabled: 1
   longJumpWindow: 0.15
   longJumpHeightMult: 1
   longJumpSpeedX: 20
@@ -1563,6 +1632,8 @@ MonoBehaviour:
   wallJumpLock: 0.15
   wallSlideGrav: 0.5
   wallJumpBufferTime: 0.12
+  wallDashJumpMult: 2
+  wallDashWindow: 0.25
   dashSpeed: 26
   dashDuration: 0.1
   dashCooldown: 0.55
